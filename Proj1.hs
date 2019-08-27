@@ -52,9 +52,9 @@ feedback target guess
           highest_rank_guess =  getExtremeRank maximum guess
           num_correct_card = length (target `intersect` guess)
           num_lower_rank = length (filter (<lowest_rank_guess) (map getRank target))
-          num_correct_rank = length ((getUniqueRank guess) `intersect` (getUniqueRank target))
+          num_correct_rank = numElementsInBothList (map getRank target) (map getRank guess)
           num_higher_rank = length (filter (>highest_rank_guess) (map getRank target))
-          num_correct_suit = length ((getUniqueSuit guess) `intersect` (getUniqueSuit target))
+          num_correct_suit = numElementsInBothList (map getSuit target) (map getSuit guess)
 
 -- *****************Helper functions for the feedback function*****************
 -- extract rank
@@ -67,11 +67,11 @@ getSuit (Card suit rank) = suit
 getExtremeRank :: ([Rank] -> Rank) -> [Card] -> Rank
 getExtremeRank _ [] = error "Empty card deck has no extreme rank"
 getExtremeRank f cards = f (map getRank cards)
--- get unique rank
-getUniqueRank :: [Card] -> [Rank]
-getUniqueRank [] = []
-getUniqueRank cards = nub (map getRank cards)
--- get unique suit
-getUniqueSuit :: [Card] -> [Suit]
-getUniqueSuit [] = []
-getUniqueSuit cards = nub (map getSuit cards)
+-- how many elements of lists 1 is in list 2
+-- Assume that both list has same length
+numElementsInBothList :: Eq a => [a] -> [a] -> Int
+numElementsInBothList [] _ = 0
+numElementsInBothList _ [] = 0
+numElementsInBothList (x:target) guess 
+    | elem x guess = 1 + numElementsInBothList target (delete x guess)
+    | otherwise = numElementsInBothList target guess
