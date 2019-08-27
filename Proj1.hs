@@ -9,28 +9,25 @@ feedback :: [Card] -> [Card] -> (Int, Int, Int, Int, Int)
 initialGuess :: Int -> ([Card], GameState)
 -- nextGuess :: ([Card], GameState) -> (Int, Int, Int, Int, Int) -> ([Card], GameState)
 
-data GameState = GameState|Nothing
+data GameState = GameState|FirstGuess
     deriving Show
 
 -- This function is responsible for generating initial guess
--- depneds on number of card specified by the user.
--- There are no repeated card, and each card are chosen randomly
+-- depneds on number of card specified by the user. There are no repeated card
+-- This function only handle intial guess up to 4 cards
 initialGuess n 
     | n <= 0 = error "Please Enter Card Number Between 1 to 52"
-    | otherwise = (initialGuessHelper n full_deck, GameState)
-        where full_deck = [Card x y | x <- [Club ..], y <- [R2 ..]]
+    | otherwise = (zipWith Card suits ranks, FirstGuess)
+        where suits = take n [Club ..]
+              ranks = take n (every (13 `div` n) [R2 ..])
 
--- This function is the helper function for for initialGuess
--- The purpose of it is to generate n number of intial pick from the full deck
--- This function tries its best to randomly pick cards.
--- This function gurantees that there is no repeated catd picked.
-initialGuessHelper :: Int -> [Card] -> [Card]
-initialGuessHelper n deck
-    | n == 0 = []
-    | otherwise = selected_card : initialGuessHelper (n-1) remaining_deck
-        where random_pick = (n * 20) `mod` (length deck)
-              selected_card = deck!!random_pick
-              remaining_deck = delete selected_card deck
+
+-- This function takes every nth element from a list and return them as a new list   
+every :: Int -> [a] -> [a]
+every n list 
+    | (n-1) > length list = []
+    | otherwise = x : every n xs
+        where (x:xs) = drop (n-1) list
 
 -- This function is responsible for giving feedback for the player's guess
 -- Return:
@@ -75,3 +72,5 @@ numElementsInBothList _ [] = 0
 numElementsInBothList (x:target) guess 
     | elem x guess = 1 + numElementsInBothList target (delete x guess)
     | otherwise = numElementsInBothList target guess
+
+-- nextGuess (last_guess, last_game_state) (num_correct_card, num_lower_rank, num_correct_rank, num_higher_rank, num_correct_suit)
