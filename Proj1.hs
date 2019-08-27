@@ -11,6 +11,7 @@
 --　Used Modules
 import Card
 import Data.List
+import Data.Ord
 
 data GameState = GuessSapce [[Card]] 
     deriving Show
@@ -92,7 +93,7 @@ numElementsInBothList (x:target) guess
 -- *****************Helper functions for the feedback function End*****************
 
 -- nextGuess :: ([Card], GameState) -> (Int, Int, Int, Int, Int) -> ([Card], GameState)
--- nextGuess (last_guess, last_game_state) (num_correct_card, num_lower_rank, num_correct_rank, num_higher_rank, num_correct_suit)
+nextGuess (last_guess, last_game_state) (num_correct_card, num_lower_rank, num_correct_rank, num_higher_rank, num_correct_suit)
 
 -- eleminate inconsistent guess
 removeInconsistent :: ([Card], GameState) -> (Int, Int, Int, Int, Int) -> [[Card]]
@@ -102,3 +103,26 @@ removeInconsistent (last_guess, GuessSapce (x:xs)) last_feedback
     | otherwise = removeInconsistent (last_guess, GuessSapce xs) last_feedback
 
 -- pick best guess candidate
+pickBestGuess :: GameState -> [Card]
+pickBestGuess (GuessSapce []) = []
+pickBestGuess (GuessSapce possibleAnswer) = getGuess (maximumBy (comparing snd) allExpectedGuessSpaceSize)
+    where allExpectedGuessSpaceSize = [(x, generateGuessSapceSize x (delete x possibleAnswer))| x <- possibleAnswer]
+
+-- get [Card] from a tuple ([Card], Double)
+getGuess :: ([Card], Double) -> [Card]
+getGuess (guess, _) = guess
+
+-- find all feedback
+-- Assume the guess given is not empty and it has same length with each possible answer in guess space
+feedbackAll :: [Card] -> [[Card]] -> [(Int, Int, Int, Int, Int)]
+feedbackAll _ [] = []
+feedbackAll guess (possibleAnswer:remainGuessSpace) = feedback possibleAnswer guess : feedbackAll guess remainGuessSpace
+
+
+-- generate a expectedGuessSpaceSize
+generateGuessSapceSize :: [Card] -> [[Card]] -> Double
+generateGuessSapceSize _ [] = 0
+generateGuessSapceSize guess possibleAnswer =  expectedSize
+    where allPossibleFeedback = feedbackAll guess possibleAnswer
+          guessSpaceSizeDistribution = map length (group allPossibleFeedback)
+          expectedSize = (fromIntegral (sum (map (^2) guessSpaceSizeDistribution))) / (fromIntegral (sum guessSpaceSizeDistribution))
