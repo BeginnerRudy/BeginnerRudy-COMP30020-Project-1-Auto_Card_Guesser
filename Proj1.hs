@@ -5,7 +5,7 @@ import Card
 import Data.List
 
 -- Main function prototypes
--- feedback :: [Card] -> [Card] -> (Int, Int, Int, Int, Int)
+feedback :: [Card] -> [Card] -> (Int, Int, Int, Int, Int)
 initialGuess :: Int -> ([Card], GameState)
 -- nextGuess :: ([Card], GameState) -> (Int, Int, Int, Int, Int) -> ([Card], GameState)
 
@@ -31,3 +31,47 @@ initialGuessHelper n deck
         where random_pick = (n * 20) `mod` (length deck)
               selected_card = deck!!random_pick
               remaining_deck = delete selected_card deck
+
+-- This function is responsible for giving feedback for the player's guess
+-- Return:
+--          num_correct_card  -> The number of cards player guessed correctly
+--          num_lower_rank    -> The number of cards in the answer which has 
+--                                  lower rank than the lowest rank in the guess
+--          num_correct_rank  -> The number of cards in the answer has same
+--                                  rank in the guess
+--          num_higher_rank   -> The number of cards in the answer which has 
+--                              　  higher rank than the highest rank in the guess
+--          num_correct_suit  -> The number of cards in the answer has same
+--                                  suit in the guess
+-- For more information, please read the project specification
+feedback target guess 
+    | (length target) /= (length guess) = error "Guess and Target do not have the same length"
+    | otherwise = (num_correct_card, num_lower_rank, 
+                            num_correct_rank, num_higher_rank, num_correct_suit)
+    where lowest_rank_guess = getExtremeRank minimum guess
+          highest_rank_guess =  getExtremeRank maximum guess
+          num_correct_card = length (target `intersect` guess)
+          num_lower_rank = length (filter (<lowest_rank_guess) (map getRank target))
+          num_correct_rank = length ((getUniqueRank guess) `intersect` (getUniqueRank target))
+          num_higher_rank = length (filter (>highest_rank_guess) (map getRank target))
+          num_correct_suit = length ((getUniqueSuit guess) `intersect` (getUniqueSuit target))
+
+-- *****************Helper functions for the feedback function*****************
+-- extract rank
+getRank :: Card -> Rank
+getRank (Card suit rank) = rank
+-- extract suit
+getSuit :: Card -> Suit
+getSuit (Card suit rank) = suit
+-- get lower/ highest rank
+getExtremeRank :: ([Rank] -> Rank) -> [Card] -> Rank
+getExtremeRank _ [] = error "Empty card deck has no extreme rank"
+getExtremeRank f cards = f (map getRank cards)
+-- get unique rank
+getUniqueRank :: [Card] -> [Rank]
+getUniqueRank [] = []
+getUniqueRank cards = nub (map getRank cards)
+-- get unique suit
+getUniqueSuit :: [Card] -> [Suit]
+getUniqueSuit [] = []
+getUniqueSuit cards = nub (map getSuit cards)
