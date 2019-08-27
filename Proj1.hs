@@ -6,7 +6,7 @@
   *                        ~ 2019/                        *
   *********************************************************-}
 
--- module Proj1 (feedback, initialGuess, nextGuess, GameState) where
+module Proj1 (feedback, initialGuess, nextGuess, GameState) where
 
 --　Used Modules
 import Card
@@ -93,7 +93,11 @@ numElementsInBothList (x:target) guess
 -- *****************Helper functions for the feedback function End*****************
 
 -- nextGuess :: ([Card], GameState) -> (Int, Int, Int, Int, Int) -> ([Card], GameState)
-nextGuess (last_guess, last_game_state) (num_correct_card, num_lower_rank, num_correct_rank, num_higher_rank, num_correct_suit)
+nextGuess last_guess_info last_feedback = (next_guess, next_GameState)
+    where
+        reduced_guess_space = removeInconsistent last_guess_info last_feedback
+        next_guess = pickBestGuess reduced_guess_space
+        next_GameState = GuessSapce (delete next_guess reduced_guess_space)
 
 -- eleminate inconsistent guess
 removeInconsistent :: ([Card], GameState) -> (Int, Int, Int, Int, Int) -> [[Card]]
@@ -103,9 +107,9 @@ removeInconsistent (last_guess, GuessSapce (x:xs)) last_feedback
     | otherwise = removeInconsistent (last_guess, GuessSapce xs) last_feedback
 
 -- pick best guess candidate
-pickBestGuess :: GameState -> [Card]
-pickBestGuess (GuessSapce []) = []
-pickBestGuess (GuessSapce possibleAnswer) = getGuess (maximumBy (comparing snd) allExpectedGuessSpaceSize)
+pickBestGuess :: [[Card]] -> [Card]
+pickBestGuess [] = []
+pickBestGuess possibleAnswer = getGuess (minimumBy (comparing snd) allExpectedGuessSpaceSize)
     where allExpectedGuessSpaceSize = [(x, generateGuessSapceSize x (delete x possibleAnswer))| x <- possibleAnswer]
 
 -- get [Card] from a tuple ([Card], Double)
