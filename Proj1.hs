@@ -1,26 +1,42 @@
+{-*********************************************************
+  *            COMP30020 Declarative Programming          *
+  *             - Project 1 (Auto Card Guesser)           *
+  *                Author Name: Renjie Meng               *
+  *                    Date: 2019/08/27                   *
+  *                        ~ 2019/                        *
+  *********************************************************-}
+
 -- module Proj1 (feedback, initialGuess, nextGuess, GameState) where
 
 --　Used Modules
 import Card
 import Data.List
 
--- Main function prototypes
-feedback :: [Card] -> [Card] -> (Int, Int, Int, Int, Int)
-initialGuess :: Int -> ([Card], GameState)
--- nextGuess :: ([Card], GameState) -> (Int, Int, Int, Int, Int) -> ([Card], GameState)
-
-data GameState = GameState|FirstGuess
+data GameState = GuessSapce [[Card]] 
     deriving Show
 
 -- This function is responsible for generating initial guess
 -- depneds on number of card specified by the user. There are no repeated card
 -- This function only handle intial guess up to 4 cards
+initialGuess :: Int -> ([Card], GameState)
 initialGuess n 
     | n <= 0 = error "Please Enter Card Number Between 1 to 52"
-    | otherwise = (zipWith Card suits ranks, FirstGuess)
+    | otherwise = (guess, GuessSapce full_guess_space)
         where suits = take n [Club ..]
               ranks = take n (every (13 `div` n) [R2 ..])
+              guess = zipWith Card suits ranks
+              full_deck_1_dim = [[Card suit rank] | suit <- [Club ..], rank <- [R2 ..]]
+              full_guess_space = generateFullGuessSapce n full_deck_1_dim
 
+-- Assume that the Int > 0
+-- This function is responsible for generating all the possible guesses of n cards  
+-- The name hyperPlane refers to the guessGuess which is 1-dim less than the one going to construct            
+generateFullGuessSapce :: Int -> [[Card]] -> [[Card]]
+generateFullGuessSapce dim_required hyperPlane
+    | dim_required == 1 = hyperPlane -- stop when the dimension is equal to 1, since the input is 1-dim. no more to add
+    | otherwise = generateFullGuessSapce (dim_required-1) [x++y | x<-full_deck_1_dim, y<-hyperPlane, (elem (x!!0) y) == False ]
+        where
+            full_deck_1_dim = [[Card suit rank] | suit <- [Club ..], rank <- [R2 ..]]
 
 -- This function takes every nth element from a list and return them as a new list   
 every :: Int -> [a] -> [a]
@@ -41,6 +57,7 @@ every n list
 --          num_correct_suit  -> The number of cards in the answer has same
 --                                  suit in the guess
 -- For more information, please read the project specification
+feedback :: [Card] -> [Card] -> (Int, Int, Int, Int, Int)
 feedback target guess 
     | (length target) /= (length guess) = error "Guess and Target do not have the same length"
     | otherwise = (num_correct_card, num_lower_rank, 
@@ -53,7 +70,7 @@ feedback target guess
           num_higher_rank = length (filter (>highest_rank_guess) (map getRank target))
           num_correct_suit = numElementsInBothList (map getSuit target) (map getSuit guess)
 
--- *****************Helper functions for the feedback function*****************
+-- *****************Helper functions for the feedback function Start***************
 -- extract rank
 getRank :: Card -> Rank
 getRank (Card suit rank) = rank
@@ -72,5 +89,16 @@ numElementsInBothList _ [] = 0
 numElementsInBothList (x:target) guess 
     | elem x guess = 1 + numElementsInBothList target (delete x guess)
     | otherwise = numElementsInBothList target guess
+-- *****************Helper functions for the feedback function End*****************
 
+-- nextGuess :: ([Card], GameState) -> (Int, Int, Int, Int, Int) -> ([Card], GameState)
 -- nextGuess (last_guess, last_game_state) (num_correct_card, num_lower_rank, num_correct_rank, num_higher_rank, num_correct_suit)
+
+-- eleminate inconsistent guess
+removeInconsistent :: ([Card], GameState) -> (Int, Int, Int, Int, Int) -> [[Card]]
+removeInconsistent (_, GuessSapce []) _ = []
+removeInconsistent (last_guess, GuessSapce (x:xs)) last_feedback
+    | feedback x last_guess == last_feedback = x : removeInconsistent (last_guess, GuessSapce xs) last_feedback
+    | otherwise = removeInconsistent (last_guess, GuessSapce xs) last_feedback
+
+-- pick best guess candidate
