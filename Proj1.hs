@@ -109,24 +109,25 @@ removeInconsistent (last_guess, GuessSapce (x:xs)) last_feedback
 -- pick best guess candidate
 pickBestGuess :: [[Card]] -> [Card]
 pickBestGuess [] = []
-pickBestGuess possibleAnswer = getGuess (minimumBy (comparing snd) allExpectedGuessSpaceSize)
-    where allExpectedGuessSpaceSize = [(x, generateGuessSapceSize x (delete x possibleAnswer))| x <- possibleAnswer]
+pickBestGuess cards = cards!!0
+-- pickBestGuess possibleAnswer = getGuess (minimumBy (comparing snd) allExpectedGuessSpaceSize)
+--     where allExpectedGuessSpaceSize = [(x, generateGuessSapceSize x possibleAnswer)| x <- possibleAnswer]
 
--- get [Card] from a tuple ([Card], Double)
-getGuess :: ([Card], Double) -> [Card]
-getGuess (guess, _) = guess
+-- -- get [Card] from a tuple ([Card], Double)
+-- getGuess :: ([Card], Double) -> [Card]
+-- getGuess (guess, _) = guess
 
--- find all feedback
--- Assume the guess given is not empty and it has same length with each possible answer in guess space
-feedbackAll :: [Card] -> [[Card]] -> [(Int, Int, Int, Int, Int)]
-feedbackAll _ [] = []
-feedbackAll guess (possibleAnswer:remainGuessSpace) = feedback possibleAnswer guess : feedbackAll guess remainGuessSpace
+-- -- find all feedback
+-- -- Assume the guess given is not empty and it has same length with each possible answer in guess space
+-- feedbackAll :: [Card] -> [[Card]] -> [(Int, Int, Int, Int, Int)]
+-- feedbackAll _ [] = []
+-- feedbackAll guess (possibleAnswer:remainGuessSpace) = feedback possibleAnswer guess : feedbackAll guess remainGuessSpace
 
 
--- generate a expectedGuessSpaceSize
-generateGuessSapceSize :: [Card] -> [[Card]] -> Double
-generateGuessSapceSize _ [] = 0
-generateGuessSapceSize guess possibleAnswer =  expectedSize
-    where allPossibleFeedback = feedbackAll guess possibleAnswer
-          guessSpaceSizeDistribution = map length (group allPossibleFeedback)
-          expectedSize = (fromIntegral (sum (map (^2) guessSpaceSizeDistribution))) / (fromIntegral (sum guessSpaceSizeDistribution))
+-- -- generate a expectedGuessSpaceSize
+-- generateGuessSapceSize :: [Card] -> [[Card]] -> Double
+-- generateGuessSapceSize _ [] = 0
+-- generateGuessSapceSize guess possibleAnswer =  expectedSize
+--     where allPossibleFeedback = feedbackAll guess possibleAnswer
+--           guessSpaceSizeDistribution = map length (group allPossibleFeedback)
+--           expectedSize =  (fromIntegral (sum (map (^2) guessSpaceSizeDistribution))) / (fromIntegral (sum guessSpaceSizeDistribution))
