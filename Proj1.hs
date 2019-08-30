@@ -1,7 +1,9 @@
 {-*********************************************************
   *            COMP30020 Declarative Programming          *
   *             - Project 1 (Auto Card Guesser)           *
+  *           Email: renjiem@student.unimelb.edu.au       *
   *                Author Name: Renjie Meng               *
+  *                    Student ID: 877396                 *
   *                    Date: 2019/08/27                   *
   *                        ~ 2019/                        *
   *********************************************************-}
@@ -16,17 +18,18 @@ import Data.Ord
 data GameState = GuessSapce [[Card]] Int 
     deriving Show
 
--- This function is responsible for generating initial guess
--- depneds on number of card specified by the user. There are no repeated card
--- This function only handle intial guess up to 4 cards
+-- This function is responsible for generating initial guess depneds on number
+-- of card specified by the user. There are no repeated card!
+-- This function ONLY handle intial guess up to 4 cards
 initialGuess :: Int -> ([Card], GameState)
 initialGuess n 
     | n <= 0 = error "Please Enter Card Number Between 1 to 52"
     | otherwise = (guess, GuessSapce full_guess_space 1)
         where suits = take n [Club ..]
               ranks = take n (every (13 `div` n) [R2 ..])
-              guess = zipWith Card suits ranks
-              full_deck_1_dim = [[Card suit rank] | suit <- [Club ..], rank <- [R2 ..]]
+            --   guess = zipWith Card suits ranks
+              guess = [(Card Diamond R4), (Card Diamond R8)]
+              full_deck_1_dim = [[Card s r] | s <- [Club ..], r <- [R2 ..]]
               full_guess_space = generateFullGuessSapce n full_deck_1_dim
 
 -- Assume that the Int > 0
@@ -110,7 +113,7 @@ removeInconsistent last_guess  (x:xs) last_feedback
 pickBestGuess :: [[Card]] -> Int -> [Card]
 pickBestGuess [] _ = []
 pickBestGuess possibleAnswer count 
-    | count <= 2 = head possibleAnswer
+    | count < 1 = head possibleAnswer
     | otherwise = getGuess (minimumBy (comparing snd) allExpectedGuessSpaceSize)
     where allExpectedGuessSpaceSize = [(x, generateGuessSapceSize x possibleAnswer)| x <- possibleAnswer]
 
