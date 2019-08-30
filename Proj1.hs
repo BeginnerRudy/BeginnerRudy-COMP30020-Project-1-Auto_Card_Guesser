@@ -13,7 +13,7 @@ import Card
 import Data.List
 import Data.Ord
 
-data GameState = GuessSapce [[Card]] 
+data GameState = GuessSapce [[Card]] Int 
     deriving Show
 
 -- This function is responsible for generating initial guess
@@ -22,7 +22,7 @@ data GameState = GuessSapce [[Card]]
 initialGuess :: Int -> ([Card], GameState)
 initialGuess n 
     | n <= 0 = error "Please Enter Card Number Between 1 to 52"
-    | otherwise = (guess, GuessSapce full_guess_space)
+    | otherwise = (guess, GuessSapce full_guess_space 1)
         where suits = take n [Club ..]
               ranks = take n (every (13 `div` n) [R2 ..])
               guess = zipWith Card suits ranks
@@ -93,41 +93,42 @@ numElementsInBothList (x:target) guess
 -- *****************Helper functions for the feedback function End*****************
 
 -- nextGuess :: ([Card], GameState) -> (Int, Int, Int, Int, Int) -> ([Card], GameState)
-nextGuess last_guess_info last_feedback = (next_guess, next_GameState)
+nextGuess (last_guess, GuessSapce last_guess_space count) last_feedback = (next_guess, next_GameState)
     where
-        reduced_guess_space = removeInconsistent last_guess_info last_feedback
-        next_guess = pickBestGuess reduced_guess_space
-        next_GameState = GuessSapce (delete next_guess reduced_guess_space)
+        reduced_guess_space = removeInconsistent last_guess last_guess_space last_feedback
+        next_guess = pickBestGuess reduced_guess_space count
+        next_GameState = GuessSapce (delete next_guess reduced_guess_space) (count+1)
 
 -- eleminate inconsistent guess
-removeInconsistent :: ([Card], GameState) -> (Int, Int, Int, Int, Int) -> [[Card]]
-removeInconsistent (_, GuessSapce []) _ = []
-removeInconsistent (last_guess, GuessSapce (x:xs)) last_feedback
-    | feedback x last_guess == last_feedback = x : removeInconsistent (last_guess, GuessSapce xs) last_feedback
-    | otherwise = removeInconsistent (last_guess, GuessSapce xs) last_feedback
+removeInconsistent :: [Card] -> [[Card]] -> (Int, Int, Int, Int, Int) -> [[Card]]
+removeInconsistent _  [] _ = []
+removeInconsistent last_guess  (x:xs) last_feedback
+    | feedback x last_guess == last_feedback = x : removeInconsistent last_guess xs last_feedback
+    | otherwise = removeInconsistent last_guess xs last_feedback
 
 -- pick best guess candidate
-pickBestGuess :: [[Card]] -> [Card]
-pickBestGuess [] = []
-pickBestGuess cards = cards!!0
--- pickBestGuess possibleAnswer = getGuess (minimumBy (comparing snd) allExpectedGuessSpaceSize)
---     where allExpectedGuessSpaceSize = [(x, generateGuessSapceSize x possibleAnswer)| x <- possibleAnswer]
+pickBestGuess :: [[Card]] -> Int -> [Card]
+pickBestGuess [] _ = []
+pickBestGuess possibleAnswer count 
+    | count <= 2 = head possibleAnswer
+    | otherwise = getGuess (minimumBy (comparing snd) allExpectedGuessSpaceSize)
+    where allExpectedGuessSpaceSize = [(x, generateGuessSapceSize x possibleAnswer)| x <- possibleAnswer]
 
--- -- get [Card] from a tuple ([Card], Double)
--- getGuess :: ([Card], Double) -> [Card]
--- getGuess (guess, _) = guess
+-- get [Card] from a tuple ([Card], Double)
+getGuess :: ([Card], Double) -> [Card]
+getGuess (guess, _) = guess
 
--- -- find all feedback
--- -- Assume the guess given is not empty and it has same length with each possible answer in guess space
--- feedbackAll :: [Card] -> [[Card]] -> [(Int, Int, Int, Int, Int)]
--- feedbackAll _ [] = []
--- feedbackAll guess (possibleAnswer:remainGuessSpace) = feedback possibleAnswer guess : feedbackAll guess remainGuessSpace
+-- find all feedback
+-- Assume the guess given is not empty and it has same length with each possible answer in guess space
+feedbackAll :: [Card] -> [[Card]] -> [(Int, Int, Int, Int, Int)]
+feedbackAll _ [] = []
+feedbackAll guess (possibleAnswer:remainGuessSpace) = feedback possibleAnswer guess : feedbackAll guess remainGuessSpace
 
 
--- -- generate a expectedGuessSpaceSize
--- generateGuessSapceSize :: [Card] -> [[Card]] -> Double
--- generateGuessSapceSize _ [] = 0
--- generateGuessSapceSize guess possibleAnswer =  expectedSize
---     where allPossibleFeedback = feedbackAll guess possibleAnswer
---           guessSpaceSizeDistribution = map length (group allPossibleFeedback)
---           expectedSize =  (fromIntegral (sum (map (^2) guessSpaceSizeDistribution))) / (fromIntegral (sum guessSpaceSizeDistribution))
+-- generate a expectedGuessSpaceSize
+generateGuessSapceSize :: [Card] -> [[Card]] -> Double
+generateGuessSapceSize _ [] = 0
+generateGuessSapceSize guess possibleAnswer =  expectedSize
+    where allPossibleFeedback = feedbackAll guess possibleAnswer
+          guessSpaceSizeDistribution = map length (group allPossibleFeedback)
+          expectedSize =  (fromIntegral (sum (map (^2) guessSpaceSizeDistribution))) / (fromIntegral (sum guessSpaceSizeDistribution))
