@@ -40,10 +40,9 @@ data GameState = GuessSapce [[Card]] Int
 --    n       ==>  number of cards in the answer
 initialGuess n 
     | n <= 0 = error "Please Enter Card Number Between 1 to 52"
-    | n == 2 = ([(Card Diamond R4), (Card Diamond R8)], new_game_state)
     | otherwise = (guess, new_game_state)
         where suits = take n [Club ..]
-              ranks = take n (every (13 `div` n) [R2 ..])
+              ranks = take n (every (13 `div` (n+1)) [R2 ..])
               guess = zipWith Card suits ranks
               full_deck_1_dim = [[Card s r] | s <- [Club ..], r <- [R2 ..]]
               full_answer_space = generateFullAnswerSapce n full_deck_1_dim
@@ -89,17 +88,43 @@ feedback target guess
     | otherwise = 
         (num_correct_card, num_lower_rank, num_correct_rank, 
         num_higher_rank, num_correct_suit)
+    where 
+          num_correct_card = fb_num_card_matched target guess
+          num_lower_rank = fb_num_rank_lower target guess
+          num_correct_rank = fb_num_rank_matched target guess
+          num_higher_rank = fb_num_rank_higher target guess
+          num_correct_suit = fb_num_suit_matched target guess
+            
+-- This function returns #Card in target has lower rank than lowest in guess
+--                   target -> guess  -> num_rank_lower 
+fb_num_rank_lower :: [Card] -> [Card] -> Int 
+fb_num_rank_lower target guess = 
+    length (filter (<lowest_rank_guess) (map getRank target))
     where lowest_rank_guess = getExtremeRank minimum guess
-          highest_rank_guess =  getExtremeRank maximum guess
-          num_correct_card = length (target `intersect` guess)
-          num_lower_rank = 
-            length (filter (<lowest_rank_guess) (map getRank target))
-          num_correct_rank = 
-            numElementsInBothList (map getRank target) (map getRank guess)
-          num_higher_rank = 
-            length (filter (>highest_rank_guess) (map getRank target))
-          num_correct_suit = 
-            numElementsInBothList (map getSuit target) (map getSuit guess)
+
+-- This function returns #Card in target has higher rank than highest in guess
+--                   target -> guess  -> num_rank_higher
+fb_num_rank_higher :: [Card] -> [Card] -> Int 
+fb_num_rank_higher target guess = 
+    length (filter (>highest_rank_guess) (map getRank target))
+    where highest_rank_guess =  getExtremeRank maximum guess
+
+-- This function returns #Card both in target an guess
+--                   target -> guess  -> num_card_matched 
+fb_num_card_matched :: [Card] -> [Card] -> Int 
+fb_num_card_matched target guess = length (target `intersect` guess)
+
+-- This function returns #Suit matched in botn target and guess
+--                   target -> guess  -> num_suit_matched 
+fb_num_suit_matched :: [Card] -> [Card] -> Int 
+fb_num_suit_matched target guess = 
+    numElementsInBothList (map getSuit target) (map getSuit guess) 
+
+-- This function returns #Rank matched in botn target and guess
+--                   target -> guess  -> num_rank_matched 
+fb_num_rank_matched :: [Card] -> [Card] -> Int 
+fb_num_rank_matched target guess = 
+    numElementsInBothList (map getRank target) (map getRank guess)
 
 -- extract Rank from a Card
 getRank :: Card -> Rank
@@ -131,21 +156,12 @@ nextGuess (last_guess, GuessSapce last_guess_space count) last_feedback =
         where 
             number_of_cards = length last_guess
             reduced_guess_space = 
-                rmInconsistent last_guess last_guess_space last_feedback
+                [x |x<-last_guess_space,feedback x last_guess == last_feedback]
             next_guess = 
                 pickBestGuess reduced_guess_space count number_of_cards
             next_GameState = 
                 GuessSapce (delete next_guess reduced_guess_space) (count+1)
 
--- eleminate inconsistent guess from a list of possible answers.
--- inconsistent means the possible answer gives different feedback
-rmInconsistent :: [Card] -> [[Card]] -> (Int, Int, Int, Int, Int) -> [[Card]]
-rmInconsistent _  [] _ = []
-rmInconsistent last_guess (possible_answer:xs) last_feedback
-    | feedback possible_answer last_guess == last_feedback = 
-        possible_answer : rmInconsistent last_guess xs last_feedback
-    | otherwise = rmInconsistent last_guess xs last_feedback
-    
 -- This function is responsible for pick best guess candidate. There are two 
 -- strategy pick the head or pick the one with min expected answer space size.
 -- Depending on the number of cards in the guess and number of guess tried, it
@@ -156,7 +172,6 @@ pickBestGuess [] _ _ = []
 pickBestGuess answer_space count number_of_cards
     | number_of_cards == 3 && count < 2 = head answer_space
     | number_of_cards == 4 && count < 3 = head answer_space
-    -- | otherwise=getGuess (minimumBy (comparing snd) allExpectedGuessSpaceSize)
     | otherwise= answer_space!!minElemIndex
     where 
         allExpectedGuessSpaceSize =  
@@ -166,21 +181,10 @@ pickBestGuess answer_space count number_of_cards
 -- get the index of the element with minimum value in a list
 getMinElemIndex :: Ord a => [a] -> Int
 getMinElemIndex [] = error "There is no min elements in an empty list"
-getMinElemIndex list = getMaybeValue (findIndex (==minElem) list)
+getMinElemIndex list = minIndex
     where
         minElem = minimum list
-
--- get the value from Just a 
-getMaybeValue :: Maybe a -> a
-getMaybeValue (Just n) = n   
-
--- This function is responsible for finding feedback for all possibel answers.
--- Assume the guess given is not empty and it has same length with each 
--- possible answer in guess space
-feedbackAll :: [Card] -> [[Card]] -> [(Int, Int, Int, Int, Int)]
-feedbackAll _ [] = []
-feedbackAll guess (possibleAnswer:remainAnswerSpace) = 
-    feedback possibleAnswer guess : feedbackAll guess remainAnswerSpace
+        (Just minIndex) = findIndex (==minElem) list
 
 -- This function is responsible for calculate a expectedGuessSpaceSize for
 -- a possible answer. Since all the sum of square would divide by same sum, 
@@ -189,6 +193,7 @@ feedbackAll guess (possibleAnswer:remainAnswerSpace) =
 generateAnswerSapceSize :: [Card] -> [[Card]] -> Int
 generateAnswerSapceSize _ [] = 0
 generateAnswerSapceSize guess possibleAnswer =  expectedSize
-    where allPossibleFeedback = feedbackAll guess possibleAnswer
-          guessSpaceSizeDistribution = map length (group allPossibleFeedback)
+    where allPossibleFeedback = [feedback x guess| x<-possibleAnswer]
+          guessSpaceSizeDistribution = 
+            map length (group (sort allPossibleFeedback))
           expectedSize = sum (map (^2) guessSpaceSizeDistribution)
