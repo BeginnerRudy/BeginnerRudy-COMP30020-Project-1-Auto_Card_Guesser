@@ -28,3 +28,8 @@ In counting correct notes and octaves, multiple occurrences in the guess are onl
 The game finishes once the performer guesses the correct chord (all three pitches in the guess are in the target). The object of the game for the performer is to find the target with the fewest possible guesses.
 
 # Result
+Test          : 70/70
+Code Quality  : 24/30
+Total         :94/100
+
+Final         :14.1/15
